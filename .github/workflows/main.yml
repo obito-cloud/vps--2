@@ -1,0 +1,43 @@
+sudo su
+
+#Install various tools
+apt-get update
+apt-get upgrade -y
+apt-get install -y imagemagick build-essential htop git fail2ban sendmail redis-server mongodb
+
+#Configure iptables
+iptables -F
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+### OVH SLA
+iptables -A INPUT -i eth0 -p icmp --source 92.222.184.0/24 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp --source 92.222.185.0/24 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp --source 92.222.186.0/24 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp --source 167.114.37.0/24 -j ACCEPT
+iptables -A INPUT -i eth0 -p icmp --source 151.80.118.90/32 -j ACCEPT
+### [end] OVH SLA
+iptables -I INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P INPUT DROP
+
+#Install iptables persistence
+apt-get install -y iptables-persistent
+
+#Configure fail2ban
+cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+service fail2ban restart
+
+#Install NGINX
+nginx=stable # use nginx=development for latest development version
+add-apt-repository ppa:nginx/$nginx
+apt-get update
+apt-get install -y nginx
+
+#Install Node.js (v6.x LTS)
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+sudo apt-get install -y nodejs
+npm install pm2 -d -g
